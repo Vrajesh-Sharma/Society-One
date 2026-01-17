@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Search, AlertCircle } from 'lucide-react';
+import { Search, AlertCircle, User, Home, Phone, Mail, Package } from 'lucide-react';
 
 export default function VehicleSearch({ society }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,7 +23,6 @@ export default function VehicleSearch({ society }) {
     setLoading(true);
 
     try {
-      // Query vehicles table directly first
       const { data: vehicleData, error: vehicleError } = await supabase
         .from('vehicles')
         .select('*')
@@ -35,7 +34,6 @@ export default function VehicleSearch({ society }) {
         throw new Error('Vehicle not found in this society');
       }
 
-      // Then query user details
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
@@ -44,7 +42,6 @@ export default function VehicleSearch({ society }) {
 
       if (userError) throw userError;
 
-      // Combine results
       const combinedResult = {
         ...vehicleData,
         user: userData
@@ -60,91 +57,181 @@ export default function VehicleSearch({ society }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-        <Search className="w-6 h-6" />
-        Vehicle Search
-      </h2>
-
-      <form onSubmit={handleSearch} className="mb-6">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent uppercase"
-            placeholder="Enter number plate (e.g., GJ27K4006)"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 transition"
-          >
-            {loading ? 'Searching...' : 'Search'}
-          </button>
-        </div>
-      </form>
-
-      {error && (
-        <div className="bg-red-100 text-red-700 p-4 rounded flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+    <div className="max-w-3xl mx-auto pb-24 md:pb-6">
+      {/* Header Card */}
+      <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 rounded-2xl p-8 mb-6 text-white shadow-xl">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+            <Search className="w-7 h-7" />
+          </div>
           <div>
-            <p className="font-semibold">Not Found</p>
-            <p className="text-sm">{error}</p>
+            <h2 className="text-3xl font-bold">Vehicle Search</h2>
+            <p className="text-indigo-100">Find vehicle owner details instantly</p>
+          </div>
+        </div>
+
+        {/* Search Form */}
+        <form onSubmit={handleSearch} className="mt-6">
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-white rounded-xl text-gray-900 font-mono text-lg placeholder-gray-400 focus:ring-4 focus:ring-white/30 focus:outline-none uppercase"
+                placeholder="GJ27K4006"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-8 py-4 bg-white text-indigo-600 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="hidden sm:inline">Searching...</span>
+                </>
+              ) : (
+                <>
+                  <Search className="w-5 h-5" />
+                  <span className="hidden sm:inline">Search</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-white rounded-2xl p-8 border-2 border-red-200 animate-slide-up">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="font-bold text-xl text-gray-900 mb-2">Vehicle Not Found</h3>
+            <p className="text-gray-600">{error}</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Make sure you entered the correct number plate
+            </p>
           </div>
         </div>
       )}
 
+      {/* Result Card */}
       {result && (
-        <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
-          <h3 className="font-bold text-green-800 mb-4 flex items-center gap-2">
-            ✓ Vehicle Found
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white p-3 rounded border border-green-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase">Number Plate</p>
-              <p className="font-bold text-lg text-gray-800">{result.number_plate}</p>
-            </div>
-            <div className="bg-white p-3 rounded border border-green-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase">Vehicle Type</p>
-              <p className="font-semibold text-gray-800 capitalize">{result.vehicle_type}</p>
-            </div>
-            <div className="bg-white p-3 rounded border border-green-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase">Owner Name</p>
-              <p className="font-semibold text-gray-800">{result.user.name}</p>
-            </div>
-            <div className="bg-white p-3 rounded border border-green-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase">Flat Number</p>
-              <p className="font-semibold text-gray-800">{result.user.flat_number}</p>
-            </div>
-            <div className="bg-white p-3 rounded border border-green-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase">Phone</p>
-              <p className="font-semibold text-gray-800">{result.user.phone}</p>
-            </div>
-            <div className="bg-white p-3 rounded border border-green-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase">Email</p>
-              <p className="font-semibold text-gray-800 break-all text-sm">{result.user.email}</p>
-            </div>
-            {result.color && (
-              <div className="bg-white p-3 rounded border border-green-200">
-                <p className="text-xs font-semibold text-gray-500 uppercase">Color</p>
-                <p className="font-semibold text-gray-800">{result.color}</p>
+        <div className="bg-white rounded-2xl card-shadow-lg overflow-hidden animate-slide-up">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 text-white">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                <span className="text-2xl">✓</span>
               </div>
-            )}
-            {result.vehicle_brand && (
-              <div className="bg-white p-3 rounded border border-green-200">
-                <p className="text-xs font-semibold text-gray-500 uppercase">Brand & Model</p>
-                <p className="font-semibold text-gray-800">{result.vehicle_brand} {result.vehicle_model}</p>
+              <div>
+                <h3 className="font-bold text-xl">Vehicle Found!</h3>
+                <p className="text-green-100 text-sm">Owner details below</p>
               </div>
-            )}
+            </div>
+
+            {/* Number Plate Display */}
+            <div className="bg-white text-gray-900 rounded-lg p-4 border-4 border-gray-800 inline-block">
+              <p className="font-mono font-bold text-2xl">{result.number_plate}</p>
+            </div>
+          </div>
+
+          {/* Details Grid */}
+          <div className="p-6">
+            {/* Vehicle Info */}
+            <div className="mb-6">
+              <h4 className="text-sm font-bold text-gray-500 uppercase mb-3">Vehicle Information</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gradient-to-br from-gray-50 to-white p-4 rounded-xl border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Type</p>
+                  <p className="font-semibold text-gray-900 capitalize flex items-center gap-2">
+                    <span className="text-xl">
+                      {result.vehicle_type === '2-wheeler' ? '🏍️' : 
+                       result.vehicle_type === 'auto' ? '🛺' : 
+                       result.vehicle_type === 'commercial' ? '🚚' : '🚗'}
+                    </span>
+                    {result.vehicle_type.replace('-', ' ')}
+                  </p>
+                </div>
+
+                {(result.vehicle_brand || result.vehicle_model) && (
+                  <div className="bg-gradient-to-br from-gray-50 to-white p-4 rounded-xl border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">Brand & Model</p>
+                    <p className="font-semibold text-gray-900">
+                      {result.vehicle_brand} {result.vehicle_model}
+                    </p>
+                  </div>
+                )}
+
+                {result.color && (
+                  <div className="bg-gradient-to-br from-gray-50 to-white p-4 rounded-xl border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">Color</p>
+                    <p className="font-semibold text-gray-900">{result.color}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Owner Info */}
+            <div>
+              <h4 className="text-sm font-bold text-gray-500 uppercase mb-3">Owner Information</h4>
+              <div className="space-y-3">
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl">
+                  <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Owner Name</p>
+                    <p className="font-bold text-gray-900">{result.user.name}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Home className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Flat Number</p>
+                    <p className="font-bold text-gray-900">{result.user.flat_number}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
+                  <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Phone Number</p>
+                    <p className="font-bold text-gray-900">{result.user.phone}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
+                  <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500">Email Address</p>
+                    <p className="font-bold text-gray-900 truncate">{result.user.email}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
+      {/* Empty State */}
       {searched && !result && !error && !loading && (
-        <div className="text-center py-8 text-gray-500">
-          <Search className="w-12 h-12 mx-auto mb-2 opacity-30" />
-          <p>No results found. Try another number plate.</p>
+        <div className="bg-white rounded-2xl p-12 text-center">
+          <Package className="w-20 h-20 mx-auto mb-4 text-gray-300" />
+          <p className="text-gray-600 font-medium">No results found</p>
+          <p className="text-gray-500 text-sm">Try searching with a different number plate</p>
         </div>
       )}
     </div>

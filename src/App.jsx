@@ -3,16 +3,14 @@ import SocietySelect from './components/Auth/SocietySelect';
 import SignUp from './components/Auth/SignUp';
 import Login from './components/Auth/Login';
 import Dashboard from './components/Dashboard/Dashboard';
-import Navbar from './components/Common/Navbar';
 
 export default function App() {
-  const [screen, setScreen] = useState('society'); // society, auth, dashboard
-  const [authMode, setAuthMode] = useState('login'); // login, signup
+  const [screen, setScreen] = useState('society');
+  const [authMode, setAuthMode] = useState('login');
   const [selectedSociety, setSelectedSociety] = useState(null);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Check for stored user data
     const storedUser = localStorage.getItem('user');
     const storedSociety = localStorage.getItem('society');
 
@@ -50,45 +48,35 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {screen === 'society' && (
-        <SocietySelect onSelect={handleSocietySelect} />
-      )}
+    <div>
+      {screen === 'society' && <SocietySelect onSelect={handleSocietySelect} />}
 
       {screen === 'auth' && selectedSociety && (
         <div>
-          {screen === 'auth' && selectedSociety && (
-  <div>
-    {authMode === 'login' && (
-      <Login
-        society={selectedSociety}
-        onLoginSuccess={handleLoginSuccess}
-        onSwitchToSignup={() => handleAuthSwitch('signup')}
-      />
-    )}
+          {authMode === 'login' && (
+            <Login
+              society={selectedSociety}
+              onLoginSuccess={handleLoginSuccess}
+              onSwitchToSignup={() => handleAuthSwitch('signup')}
+            />
+          )}
 
-    {authMode === 'signup' && (
-      <SignUp
-        society={selectedSociety}
-        onSignupSuccess={handleSignupSuccess}
-        onSwitchToLogin={() => handleAuthSwitch('login')}
-      />
-    )}
-  </div>
-)}
-
+          {authMode === 'signup' && (
+            <SignUp
+              society={selectedSociety}
+              onSignupSuccess={handleSignupSuccess}
+              onSwitchToLogin={() => handleAuthSwitch('login')}
+            />
+          )}
         </div>
       )}
 
       {screen === 'dashboard' && user && selectedSociety && (
-        <>
-          <Navbar
-            user={user}
-            society={selectedSociety}
-            onLogout={handleLogout}
-          />
-          <Dashboard user={user} society={selectedSociety} />
-        </>
+        <Dashboard
+          user={user}
+          society={selectedSociety}
+          onLogout={handleLogout}
+        />
       )}
     </div>
   );
