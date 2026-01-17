@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Car } from 'lucide-react';
+import { Plus, Trash2, Car, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function VehicleForm({ user, society, onVehicleAdded }) {
   const [vehicles, setVehicles] = useState([]);
@@ -12,8 +12,32 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
     vehicle_model: ''
   });
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Fetch existing vehicles on mount
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+
+  const fetchVehicles = async () => {
+    try {
+      setFetchLoading(true);
+      const { data, error: dbError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('user_id', user.user_id)
+        .order('created_at', { ascending: false });
+
+      if (dbError) throw dbError;
+      setVehicles(data || []);
+    } catch (err) {
+      console.error('Error fetching vehicles:', err);
+    } finally {
+      setFetchLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -50,7 +74,7 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
 
       if (dbError) throw dbError;
 
-      setVehicles([...vehicles, data[0]]);
+      setVehicles([data[0], ...vehicles]);
       setFormData({
         number_plate: '',
         vehicle_type: '2-wheeler',
@@ -59,8 +83,8 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
         vehicle_model: ''
       });
       setSuccess('Vehicle added successfully!');
-      setTimeout(() => setSuccess(''), 3000);
       onVehicleAdded?.();
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.message || 'Failed to add vehicle');
     } finally {
@@ -69,6 +93,8 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
   };
 
   const handleDeleteVehicle = async (vehicleId) => {
+    if (!window.confirm('Are you sure you want to delete this vehicle?')) return;
+
     try {
       const { error } = await supabase
         .from('vehicles')
@@ -78,7 +104,7 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
       if (error) throw error;
 
       setVehicles(vehicles.filter(v => v.vehicle_id !== vehicleId));
-      setSuccess('Vehicle removed');
+      setSuccess('Vehicle removed successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.message || 'Failed to delete vehicle');
@@ -86,65 +112,91 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 max-w-2xl mx-auto">
+    <div className="bg-white rounded-lg shadow p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
         <Car className="w-6 h-6" />
         My Vehicles
       </h2>
 
       {error && (
-        <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
-          {error}
+        <div className="bg-red-100 text-red-700 p-4 rounded mb-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <p>{error}</p>
         </div>
       )}
 
       {success && (
-        <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
-          {success}
+        <div className="bg-green-100 text-green-700 p-4 rounded mb-4 flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <p>{success}</p>
         </div>
       )}
 
       {/* Vehicle List */}
-      {vehicles.length > 0 && (
+      {fetchLoading ? (
+        <div className="text-center py-8 text-gray-500">
+          <Car className="w-12 h-12 mx-auto mb-2 opacity-30 animate-spin" />
+          <p>Loading vehicles...</p>
+        </div>
+      ) : vehicles.length > 0 ? (
         <div className="mb-8 space-y-3">
-          <h3 className="font-semibold text-gray-700">Added Vehicles:</h3>
+          <h3 className="font-semibold text-gray-700 mb-3">
+            Registered Vehicles ({vehicles.length})
+          </h3>
           {vehicles.map((vehicle) => (
-            <div key={vehicle.vehicle_id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div>
-                <p className="font-semibold text-gray-800">{vehicle.number_plate}</p>
+            <div
+              key={vehicle.vehicle_id}
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-indigo-300 transition"
+            >
+              <div className="flex-1">
+                <p className="font-semibold text-gray-800 text-lg">{vehicle.number_plate}</p>
                 <p className="text-sm text-gray-600">
-                  {vehicle.vehicle_type} • {vehicle.vehicle_brand} {vehicle.vehicle_model}
+                  <span className="capitalize">{vehicle.vehicle_type}</span>
+                  {vehicle.vehicle_brand && ` • ${vehicle.vehicle_brand}`}
+                  {vehicle.vehicle_model && ` ${vehicle.vehicle_model}`}
                   {vehicle.color && ` • ${vehicle.color}`}
                 </p>
               </div>
               <button
                 onClick={() => handleDeleteVehicle(vehicle.vehicle_id)}
                 className="text-red-600 hover:bg-red-100 p-2 rounded transition"
+                title="Delete vehicle"
               >
                 <Trash2 className="w-5 h-5" />
               </button>
             </div>
           ))}
         </div>
+      ) : (
+        <div className="mb-8 text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <Car className="w-12 h-12 mx-auto mb-2 opacity-30" />
+          <p className="text-gray-500">No vehicles registered yet</p>
+        </div>
       )}
 
       {/* Add Vehicle Form */}
-      <form onSubmit={handleAddVehicle} className="space-y-4">
+      <form onSubmit={handleAddVehicle} className="border-t pt-6 space-y-4">
+        <h3 className="font-semibold text-gray-700 mb-4">Add New Vehicle</h3>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Number Plate *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Number Plate <span className="text-red-600">*</span>
+            </label>
             <input
               type="text"
               name="number_plate"
               value={formData.number_plate}
               onChange={handleInputChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent uppercase"
-              placeholder="GJ01AB1234"
+              placeholder="GJ27K4006"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Type *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Vehicle Type <span className="text-red-600">*</span>
+            </label>
             <select
               name="vehicle_type"
               value={formData.vehicle_type}
@@ -166,7 +218,7 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
               value={formData.color}
               onChange={handleInputChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="e.g., White, Black, Red"
+              placeholder="White, Black, Red, etc."
             />
           </div>
 
@@ -178,7 +230,7 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
               value={formData.vehicle_brand}
               onChange={handleInputChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="e.g., Honda, Toyota, Hero"
+              placeholder="Honda, Toyota, Hero, etc."
             />
           </div>
 
@@ -190,7 +242,7 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
               value={formData.vehicle_model}
               onChange={handleInputChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="e.g., Civic, Activa"
+              placeholder="Civic, Activa, City, etc."
             />
           </div>
         </div>

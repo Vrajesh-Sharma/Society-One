@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Users, Car, Megaphone, MessageSquare, BarChart3 } from 'lucide-react';
-import VehicleForm from '../Profile/VehicleForm';
+import { Users, Car, Megaphone, MessageSquare } from 'lucide-react';
+import Profile from '../Profile/Profile';
 import VehicleSearch from '../Vehicles/VehicleSearch';
 
 export default function Dashboard({ user, society }) {
   const [activeTab, setActiveTab] = useState('profile');
 
   const tabs = [
-    { id: 'profile', label: 'Profile', icon: Users },
+    { id: 'profile', label: 'My Profile', icon: Users },
     { id: 'search-vehicle', label: 'Search Vehicle', icon: Car },
     { id: 'notices', label: 'Notices', icon: Megaphone },
     { id: 'complaints', label: 'Complaints', icon: MessageSquare }
@@ -16,7 +16,7 @@ export default function Dashboard({ user, society }) {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Tab Navigation */}
-      <div className="bg-white border-b">
+      <div className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 overflow-x-auto">
           <div className="flex gap-1">
             {tabs.map(tab => {
@@ -25,7 +25,7 @@ export default function Dashboard({ user, society }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-4 font-medium border-b-2 transition ${
+                  className={`flex items-center gap-2 px-4 py-4 font-medium border-b-2 transition whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'border-indigo-600 text-indigo-600'
                       : 'border-transparent text-gray-600 hover:text-gray-800'
@@ -42,25 +42,23 @@ export default function Dashboard({ user, society }) {
 
       {/* Tab Content */}
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {activeTab === 'profile' && (
-          <VehicleForm user={user} society={society} />
-        )}
+        {activeTab === 'profile' && <Profile user={user} society={society} />}
 
-        {activeTab === 'search-vehicle' && (
-          <VehicleSearch society={society} />
-        )}
+        {activeTab === 'search-vehicle' && <VehicleSearch society={society} />}
 
         {activeTab === 'notices' && (
           <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
             <Megaphone className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Notice Board coming soon...</p>
+            <p className="text-lg font-medium">Notice Board Coming Soon</p>
+            <p className="text-sm">This feature will be available soon!</p>
           </div>
         )}
 
         {activeTab === 'complaints' && (
           <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
             <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Complaint Box coming soon...</p>
+            <p className="text-lg font-medium">Complaint Box Coming Soon</p>
+            <p className="text-sm">This feature will be available soon!</p>
           </div>
         )}
       </div>
