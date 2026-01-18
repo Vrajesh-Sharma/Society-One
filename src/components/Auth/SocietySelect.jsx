@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { ChevronRight, Building2, MapPin } from 'lucide-react';
 
 export default function SocietySelect({ onSelect }) {
+  const navigate = useNavigate();
   const [societies, setSocieties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,6 +29,11 @@ export default function SocietySelect({ onSelect }) {
     }
   };
 
+  const handleSelect = (society) => {
+    onSelect(society);
+    navigate('/login');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center p-4">
@@ -46,7 +53,7 @@ export default function SocietySelect({ onSelect }) {
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <Building2 className="w-8 h-8 brand-gradient bg-clip-text text-transparent" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">SocietyOne</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">SocietyHub</h1>
           <p className="text-indigo-100">Smart Apartment Management Platform</p>
         </div>
 
@@ -65,7 +72,7 @@ export default function SocietySelect({ onSelect }) {
             {societies.map((society, index) => (
               <button
                 key={society.society_id}
-                onClick={() => onSelect(society)}
+                onClick={() => handleSelect(society)}
                 style={{ animationDelay: `${0.2 + index * 0.05}s` }}
                 className="w-full animate-slide-up p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-600 hover:bg-indigo-50 transition group text-left"
               >

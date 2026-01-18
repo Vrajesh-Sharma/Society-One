@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Mail, Lock, Phone, Home, User, ArrowLeft, Eye, EyeOff, Check } from 'lucide-react';
 
-export default function SignUp({ society, onSignupSuccess, onSwitchToLogin }) {
+export default function SignUp({ society, onSignupSuccess }) {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
@@ -101,8 +103,11 @@ export default function SignUp({ society, onSignupSuccess, onSwitchToLogin }) {
 
       if (flatError) throw flatError;
 
-      setSuccess('Account created successfully! Redirecting...');
-      setTimeout(() => onSignupSuccess(), 2000);
+      setSuccess('Account created successfully! Redirecting to login...');
+      setTimeout(() => {
+        onSignupSuccess();
+        navigate('/login');
+      }, 2000);
     } catch (err) {
       setError(err.message || 'Signup failed');
     } finally {
@@ -116,7 +121,7 @@ export default function SignUp({ society, onSignupSuccess, onSwitchToLogin }) {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
           <button
-            onClick={onSwitchToLogin}
+            onClick={() => navigate('/login')}
             className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 mb-6 font-medium text-sm"
           >
             <ArrowLeft className="w-4 h-4" />

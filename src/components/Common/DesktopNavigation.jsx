@@ -21,11 +21,16 @@ export default function DesktopNavigation({ activeTab, onTabChange, user, societ
     }
   };
 
+  // Safety check - don't render if user or society is null
+  if (!user || !society) {
+    return null;
+  }
+
   return (
     <>
       {/* Desktop Sidebar */}
       <div
-        className={`hidden md:flex md:flex-col fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 ${
+        className={`hidden md:flex md:flex-col fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 ${
           sidebarOpen ? 'w-64' : 'w-20'
         }`}
       >
@@ -33,8 +38,8 @@ export default function DesktopNavigation({ activeTab, onTabChange, user, societ
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           {sidebarOpen && (
             <div>
-              <h1 className="text-xl font-bold brand-gradient bg-clip-text text-transparent">
-                SocietyHub
+              <h1 className="text-xl font-bold text-black">
+                SocietyOne
               </h1>
               <p className="text-xs text-gray-500">Management Platform</p>
             </div>

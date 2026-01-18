@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Mail, Lock, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
-export default function Login({ society, onLoginSuccess, onSwitchToSignup }) {
+export default function Login({ society, onLoginSuccess }) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -49,7 +51,8 @@ export default function Login({ society, onLoginSuccess, onSwitchToSignup }) {
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('society', JSON.stringify(society));
 
-      onLoginSuccess(userData);
+      onLoginSuccess(userData, society);
+      navigate('/profile');
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -61,6 +64,15 @@ export default function Login({ society, onLoginSuccess, onSwitchToSignup }) {
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center p-4 md:p-6">
       <div className="w-full max-w-md animate-slide-up">
         <div className="bg-white rounded-2xl shadow-xl p-8">
+          {/* Back Button */}
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 mb-6 font-medium text-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Change Society
+          </button>
+
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
           <p className="text-gray-600 mb-8">Sign in to your {society.name} account</p>
 
@@ -127,7 +139,7 @@ export default function Login({ society, onLoginSuccess, onSwitchToSignup }) {
 
           {/* Sign Up Button */}
           <button
-            onClick={onSwitchToSignup}
+            onClick={() => navigate('/signup')}
             className="w-full border-2 border-indigo-600 text-indigo-600 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition flex items-center justify-center gap-2"
           >
             <UserPlus className="w-5 h-5" />
