@@ -23,9 +23,17 @@ export default function VehicleSearch({ society }) {
     setLoading(true);
 
     try {
+      // Step 1: Get vehicle with flat info
       const { data: vehicleData, error: vehicleError } = await supabase
         .from('vehicles')
-        .select('*')
+        .select(`
+          *,
+          added_by_user:added_by (name),
+          flat:flat_id (
+            flat_id,
+            flat_number
+          )
+        `)
         .eq('society_id', society.society_id)
         .eq('number_plate', searchTerm.toUpperCase())
         .single();
@@ -34,17 +42,25 @@ export default function VehicleSearch({ society }) {
         throw new Error('Vehicle not found in this society');
       }
 
-      const { data: userData, error: userError } = await supabase
+      // Step 2: Get ALL users from the same flat_number (not just owner)
+      const { data: flatResidents, error: residentsError } = await supabase
         .from('users')
-        .select('*')
-        .eq('user_id', vehicleData.user_id)
-        .single();
+        .select('name, phone, email, role, flat_number')
+        .eq('society_id', society.society_id)
+        .eq('flat_number', vehicleData.flat.flat_number)
+        .order('name', { ascending: true });
 
-      if (userError) throw userError;
+      if (residentsError) {
+        console.error('Error fetching residents:', residentsError);
+      }
 
+      // Combine data
       const combinedResult = {
         ...vehicleData,
-        user: userData
+        flat: {
+          ...vehicleData.flat,
+          users: flatResidents || []
+        }
       };
 
       setResult(combinedResult);
@@ -66,7 +82,7 @@ export default function VehicleSearch({ society }) {
           </div>
           <div>
             <h2 className="text-3xl font-bold">Vehicle Search</h2>
-            <p className="text-indigo-100">Find vehicle owner details instantly</p>
+            <p className="text-indigo-100">Find vehicle and flat owner details</p>
           </div>
         </div>
 
@@ -131,7 +147,7 @@ export default function VehicleSearch({ society }) {
               </div>
               <div>
                 <h3 className="font-bold text-xl">Vehicle Found!</h3>
-                <p className="text-green-100 text-sm">Owner details below</p>
+                <p className="text-green-100 text-sm">Flat & owner details below</p>
               </div>
             </div>
 
@@ -174,54 +190,71 @@ export default function VehicleSearch({ society }) {
                     <p className="font-semibold text-gray-900">{result.color}</p>
                   </div>
                 )}
+
+                {result.added_by_user && (
+                  <div className="bg-gradient-to-br from-gray-50 to-white p-4 rounded-xl border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">Added By</p>
+                    <p className="font-semibold text-gray-900">{result.added_by_user.name}</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Owner Info */}
-            <div>
-              <h4 className="text-sm font-bold text-gray-500 uppercase mb-3">Owner Information</h4>
-              <div className="space-y-3">
-                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl">
-                  <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Owner Name</p>
-                    <p className="font-bold text-gray-900">{result.user.name}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Home className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Flat Number</p>
-                    <p className="font-bold text-gray-900">{result.user.flat_number}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-                  <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Phone Number</p>
-                    <p className="font-bold text-gray-900">{result.user.phone}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
-                  <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500">Email Address</p>
-                    <p className="font-bold text-gray-900 truncate">{result.user.email}</p>
-                  </div>
+            {/* Flat & Residents Info */}
+            {result.flat && (
+              <div>
+                <h4 className="text-sm font-bold text-gray-500 uppercase mb-3">
+                  Flat {result.flat.flat_number} - All Residents ({result.flat.users?.length || 0})
+                </h4>
+                <div className="space-y-3">
+                  {result.flat.users && result.flat.users.length > 0 ? (
+                    result.flat.users.map((resident, index) => (
+                      <div
+                        key={index}
+                        style={{ animationDelay: `${index * 0.05}s` }}
+                        className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 animate-slide-up"
+                      >
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <User className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-bold text-gray-900">{resident.name}</p>
+                              {resident.role !== 'resident' && (
+                                <span className="text-xs px-2 py-0.5 bg-indigo-600 text-white rounded-full capitalize">
+                                  {resident.role}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              <Home className="w-3 h-3 inline mr-1" />
+                              {resident.flat_number}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm pl-13">
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Phone className="w-4 h-4 text-green-600 flex-shrink-0" />
+                            <span className="break-all">{resident.phone}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Mail className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                            <span className="break-all truncate">{resident.email}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl">
+                      <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <p className="text-gray-600 font-medium">No residents found for this flat</p>
+                      <p className="text-xs text-gray-500 mt-1">The flat may be vacant or data is incomplete</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

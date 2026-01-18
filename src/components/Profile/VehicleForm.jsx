@@ -16,24 +16,70 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
   const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [userFlat, setUserFlat] = useState(null);
 
   useEffect(() => {
-    fetchVehicles();
+    fetchUserFlat();
   }, []);
+
+  useEffect(() => {
+    if (userFlat) {
+      fetchVehicles();
+    }
+  }, [userFlat]);
+
+  const fetchUserFlat = async () => {
+    try {
+      // Get the flat record for this user's flat_number
+      const { data: flatData, error: flatError } = await supabase
+        .from('flats')
+        .select('flat_id, flat_number')
+        .eq('society_id', society.society_id)
+        .eq('flat_number', user.flat_number)
+        .single();
+
+      if (flatError) {
+        // If flat doesn't exist, create it
+        const { data: newFlat, error: createError } = await supabase
+          .from('flats')
+          .insert([
+            {
+              society_id: society.society_id,
+              flat_number: user.flat_number,
+              owner_id: user.user_id
+            }
+          ])
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        setUserFlat(newFlat);
+      } else {
+        setUserFlat(flatData);
+      }
+    } catch (err) {
+      console.error('Error fetching flat:', err);
+      setError('Failed to load flat information');
+    }
+  };
 
   const fetchVehicles = async () => {
     try {
       setFetchLoading(true);
       const { data, error: dbError } = await supabase
         .from('vehicles')
-        .select('*')
-        .eq('user_id', user.user_id)
+        .select(`
+          *,
+          users:added_by (name)
+        `)
+        .eq('flat_id', userFlat.flat_id)
         .order('created_at', { ascending: false });
 
       if (dbError) throw dbError;
       setVehicles(data || []);
     } catch (err) {
       console.error('Error fetching vehicles:', err);
+      setError('Failed to load vehicles');
     } finally {
       setFetchLoading(false);
     }
@@ -54,6 +100,11 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
       return;
     }
 
+    if (!userFlat) {
+      setError('Flat information not loaded. Please refresh the page.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -61,7 +112,8 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
         .from('vehicles')
         .insert([
           {
-            user_id: user.user_id,
+            flat_id: userFlat.flat_id,
+            added_by: user.user_id,
             society_id: society.society_id,
             number_plate: formData.number_plate.toUpperCase(),
             vehicle_type: formData.vehicle_type,
@@ -70,7 +122,10 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
             vehicle_model: formData.vehicle_model
           }
         ])
-        .select();
+        .select(`
+          *,
+          users:added_by (name)
+        `);
 
       if (dbError) throw dbError;
 
@@ -82,10 +137,10 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
         vehicle_brand: '',
         vehicle_model: ''
       });
-      setSuccess('Vehicle added successfully!');
+      setSuccess('Vehicle added successfully! All family members can now see this vehicle.');
       setShowAddForm(false);
       onVehicleAdded?.();
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
       setError(err.message || 'Failed to add vehicle');
     } finally {
@@ -94,7 +149,7 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
   };
 
   const handleDeleteVehicle = async (vehicleId) => {
-    if (!window.confirm('Remove this vehicle from your account?')) return;
+    if (!window.confirm('Remove this vehicle? All family members will lose access.')) return;
 
     try {
       const { error } = await supabase
@@ -116,6 +171,18 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
     return '🚗';
   };
 
+  if (!userFlat && !fetchLoading) {
+    return (
+      <div className="bg-white rounded-2xl card-shadow-lg p-6 md:p-8">
+        <div className="text-center py-8">
+          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
+          <p className="text-gray-600 font-medium">Unable to load flat information</p>
+          <p className="text-sm text-gray-500 mt-2">Please contact support</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl card-shadow-lg p-6 md:p-8">
       {/* Header */}
@@ -125,10 +192,13 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
               <Car className="w-6 h-6 text-white" />
             </div>
-            My Vehicles
+            Flat Vehicles
           </h2>
           <p className="text-gray-600 text-sm mt-1">
-            {vehicles.length} {vehicles.length === 1 ? 'vehicle' : 'vehicles'} registered
+            {userFlat?.flat_number} • {vehicles.length} {vehicles.length === 1 ? 'vehicle' : 'vehicles'} registered
+          </p>
+          <p className="text-xs text-indigo-600 mt-1">
+            👨‍👩‍👧‍👦 Shared with all family members in this flat
           </p>
         </div>
         <button
@@ -158,7 +228,7 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
       {/* Add Vehicle Form */}
       {showAddForm && (
         <div className="mb-8 p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border-2 border-indigo-200 animate-slide-up">
-          <h3 className="font-bold text-lg text-gray-900 mb-4">Add New Vehicle</h3>
+          <h3 className="font-bold text-lg text-gray-900 mb-4">Add New Vehicle to {userFlat?.flat_number}</h3>
           <form onSubmit={handleAddVehicle} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -171,7 +241,7 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
                   value={formData.number_plate}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent uppercase font-mono text-lg"
-                  placeholder="GJ01AB1234"
+                  placeholder="GJ27K4006"
                 />
               </div>
 
@@ -263,7 +333,7 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
       {fetchLoading ? (
         <div className="text-center py-16">
           <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading your vehicles...</p>
+          <p className="text-gray-500">Loading vehicles...</p>
         </div>
       ) : vehicles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -311,6 +381,11 @@ export default function VehicleForm({ user, society, onVehicleAdded }) {
                     {vehicle.color && (
                       <p className="text-xs text-gray-500">
                         🎨 {vehicle.color}
+                      </p>
+                    )}
+                    {vehicle.users && (
+                      <p className="text-xs text-indigo-600 mt-2">
+                        Added by {vehicle.users.name}
                       </p>
                     )}
                   </div>
