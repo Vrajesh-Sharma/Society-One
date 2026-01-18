@@ -199,6 +199,18 @@ export default function App() {
             )
           }
         />
+        <Route
+          path="/payments"
+          element={
+            <ProtectedRoute user={user} society={selectedSociety} loading={loading}>
+              <Dashboard
+                user={user}
+                society={selectedSociety}
+                onLogout={handleLogout}
+              />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

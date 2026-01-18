@@ -1,4 +1,4 @@
-import { Users, Car, Megaphone, MessageSquare, LogOut } from 'lucide-react';
+import { Users, Car, Megaphone, MessageSquare, DollarSign, LogOut } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 export default function MobileNavigation({ activeTab, onTabChange, onLogout }) {
@@ -6,7 +6,8 @@ export default function MobileNavigation({ activeTab, onTabChange, onLogout }) {
     { id: 'profile', label: 'Profile', icon: Users },
     { id: 'search-vehicle', label: 'Search', icon: Car },
     { id: 'notices', label: 'Notices', icon: Megaphone },
-    { id: 'complaints', label: 'Complaints', icon: MessageSquare }
+    { id: 'complaints', label: 'Complaints', icon: MessageSquare },
+    { id: 'payments', label: 'Payments', icon: DollarSign }
   ];
 
   const handleLogout = async () => {

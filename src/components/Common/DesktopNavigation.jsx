@@ -1,4 +1,4 @@
-import { Home, Users, Car, Megaphone, MessageSquare, LogOut, Menu, X } from 'lucide-react';
+import { Home, Users, Car, Megaphone, MessageSquare, DollarSign, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
@@ -9,7 +9,8 @@ export default function DesktopNavigation({ activeTab, onTabChange, user, societ
     { id: 'profile', label: 'My Profile', icon: Users },
     { id: 'search-vehicle', label: 'Search Vehicle', icon: Car },
     { id: 'notices', label: 'Notice Board', icon: Megaphone },
-    { id: 'complaints', label: 'Complaints', icon: MessageSquare }
+    { id: 'complaints', label: 'Complaints', icon: MessageSquare },
+    { id: 'payments', label: 'Payments', icon: DollarSign }
   ];
 
   const handleLogout = async () => {

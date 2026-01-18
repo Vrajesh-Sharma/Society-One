@@ -4,6 +4,7 @@ import Profile from '../Profile/Profile';
 import VehicleSearch from '../Vehicles/VehicleSearch';
 import ComplaintList from '../Complaints/ComplaintList';
 import NoticeBoard from '../Notices/NoticeBoard';
+import PaymentDashboard from '../Payments/PaymentDashboard';
 import DesktopNavigation from '../Common/DesktopNavigation';
 import MobileNavigation from '../Common/MobileNavigation';
 
@@ -28,14 +29,16 @@ export default function Dashboard({ user, society, onLogout }) {
     '/profile': 'profile',
     '/vehicles': 'search-vehicle',
     '/notices': 'notices',
-    '/complaints': 'complaints'
+    '/complaints': 'complaints',
+    '/payments': 'payments'
   };
 
   const tabToRoute = {
     'profile': '/profile',
     'search-vehicle': '/vehicles',
     'notices': '/notices',
-    'complaints': '/complaints'
+    'complaints': '/complaints',
+    'payments': '/payments'
   };
 
   const currentTab = routeToTab[location.pathname] || 'profile';
@@ -70,6 +73,7 @@ export default function Dashboard({ user, society, onLogout }) {
           {currentTab === 'search-vehicle' && <VehicleSearch society={society} />}
           {currentTab === 'notices' && <NoticeBoard user={user} society={society} />}
           {currentTab === 'complaints' && <ComplaintList user={user} society={society} />}
+          {currentTab === 'payments' && <PaymentDashboard user={user} society={society} />}
         </div>
       </div>
     </div>
