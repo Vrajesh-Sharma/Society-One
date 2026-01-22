@@ -26,7 +26,7 @@ export default function AdminPayments({ user, society }) {
     try {
       setLoading(true);
 
-      // Get latest bill
+      // Get latest bill (most recent)
       const { data: latestBill } = await supabase
         .from('maintenance_bills')
         .select('*')
@@ -56,6 +56,19 @@ export default function AdminPayments({ user, society }) {
           totalPending
         });
       }
+
+      // Also fetch all bills for current month
+      const currentMonth = new Date().toISOString().slice(0, 7); // "2026-01"
+      const { data: allCurrentBills } = await supabase
+        .from('maintenance_bills')
+        .select('*')
+        .eq('society_id', society.society_id)
+        .eq('bill_month', currentMonth)
+        .order('created_at', { ascending: false });
+
+      // You can use allCurrentBills to show multiple bills if needed
+      console.log('All bills for current month:', allCurrentBills);
+
     } catch (err) {
       console.error('Error fetching stats:', err);
     } finally {

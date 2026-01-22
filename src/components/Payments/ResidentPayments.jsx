@@ -6,7 +6,7 @@ export default function ResidentPayments({ user, society }) {
   const [currentBill, setCurrentBill] = useState(null);
   const [flatBill, setFlatBill] = useState(null);
   const [payments, setPayments] = useState([]);
-  const [balance, setBalance] = useState(null);
+  const [totalBalance, setTotalBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [userFlat, setUserFlat] = useState(null);
 
@@ -28,6 +28,19 @@ export default function ResidentPayments({ user, society }) {
 
       if (!flat) return;
       setUserFlat(flat);
+
+      // Calculate total balance - ONLY from latest bill to avoid double-counting
+      const { data: latestBillForFlat } = await supabase
+        .from('flat_bills')
+        .select('balance_due')
+        .eq('flat_id', flat.flat_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      const balance = latestBillForFlat ? parseFloat(latestBillForFlat.balance_due) : 0;
+      setTotalBalance(balance);
+
 
       // Get latest bill
       const { data: latestBill } = await supabase
@@ -67,15 +80,6 @@ export default function ResidentPayments({ user, society }) {
         .limit(10);
 
       setPayments(paymentData || []);
-
-      // Get balance
-      const { data: balanceData } = await supabase
-        .from('flat_ledger')
-        .select('*')
-        .eq('flat_id', flat.flat_id)
-        .single();
-
-      setBalance(balanceData);
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {
@@ -109,21 +113,17 @@ export default function ResidentPayments({ user, society }) {
         </div>
 
         {/* Balance Card */}
-        {balance && (
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-            <p className="text-green-100 text-sm mb-1">Current Balance</p>
-            <p className={`text-3xl font-bold ${
-              parseFloat(balance.balance) > 0 ? 'text-green-200' :
-              parseFloat(balance.balance) < 0 ? 'text-red-200' : 'text-white'
-            }`}>
-              {parseFloat(balance.balance) >= 0 ? '+' : ''}₹{Math.abs(parseFloat(balance.balance)).toLocaleString('en-IN')}
-            </p>
-            <p className="text-xs text-green-100 mt-1">
-              {parseFloat(balance.balance) > 0 ? 'Advance Payment' :
-               parseFloat(balance.balance) < 0 ? 'Amount Due' : 'All Clear'}
-            </p>
-          </div>
-        )}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+          <p className="text-green-100 text-sm mb-1">Total Outstanding</p>
+          <p className={`text-3xl font-bold ${
+            totalBalance > 0 ? 'text-red-200' : 'text-green-200'
+          }`}>
+            ₹{Math.abs(totalBalance).toLocaleString('en-IN')}
+          </p>
+          <p className="text-xs text-green-100 mt-1">
+            {totalBalance > 0 ? 'Amount Due' : 'All Clear'}
+          </p>
+        </div>
       </div>
 
       {/* Current Bill */}
@@ -152,11 +152,72 @@ export default function ResidentPayments({ user, society }) {
               </div>
             </div>
 
+            {/* Show adjustment banner */}
+            {parseFloat(flatBill.bill_amount) !== parseFloat(flatBill.adjusted_amount) && (
+              <div className={`mb-4 rounded-lg p-4 border-2 ${
+                parseFloat(flatBill.adjusted_amount) < parseFloat(flatBill.bill_amount)
+                  ? 'bg-gradient-to-r from-green-100 to-emerald-100 border-green-300'
+                  : 'bg-gradient-to-r from-orange-100 to-red-100 border-orange-300'
+              }`}>
+                <div className="flex items-center gap-2 mb-2">
+                  {parseFloat(flatBill.adjusted_amount) < parseFloat(flatBill.bill_amount) ? (
+                    <>
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span className="font-bold text-green-800">Advance Payment Applied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-5 h-5 text-orange-600" />
+                      <span className="font-bold text-orange-800">Previous Dues Added</span>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-6 flex-wrap">
+                  <div>
+                    <p className={`text-xs mb-1 ${
+                      parseFloat(flatBill.adjusted_amount) < parseFloat(flatBill.bill_amount)
+                        ? 'text-green-700' : 'text-orange-700'
+                    }`}>
+                      Current Month Bill
+                    </p>
+                    <p className="text-lg font-bold text-gray-800">
+                      ₹{parseFloat(flatBill.bill_amount).toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {parseFloat(flatBill.adjusted_amount) < parseFloat(flatBill.bill_amount) ? '-' : '+'}
+                  </div>
+                  <div>
+                    <p className={`text-xs mb-1 ${
+                      parseFloat(flatBill.adjusted_amount) < parseFloat(flatBill.bill_amount)
+                        ? 'text-green-700' : 'text-orange-700'
+                    }`}>
+                      {parseFloat(flatBill.adjusted_amount) < parseFloat(flatBill.bill_amount)
+                        ? 'Advance Adjusted' : 'Previous Dues'}
+                    </p>
+                    <p className={`text-lg font-bold ${
+                      parseFloat(flatBill.adjusted_amount) < parseFloat(flatBill.bill_amount)
+                        ? 'text-green-600' : 'text-orange-600'
+                    }`}>
+                      ₹{Math.abs(parseFloat(flatBill.bill_amount) - parseFloat(flatBill.adjusted_amount)).toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                  <div className="text-2xl font-bold">=</div>
+                  <div className="ml-auto">
+                    <p className="text-xs mb-1 text-gray-600">Total Bill</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      ₹{parseFloat(flatBill.adjusted_amount).toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <p className="text-xs text-gray-500 mb-1">Bill Amount</p>
                 <p className="text-lg font-bold text-gray-900">
-                  ₹{parseFloat(flatBill.bill_amount).toLocaleString('en-IN')}
+                  ₹{parseFloat(flatBill.adjusted_amount).toLocaleString('en-IN')}
                 </p>
               </div>
               <div>
@@ -167,7 +228,9 @@ export default function ResidentPayments({ user, society }) {
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Balance Due</p>
-                <p className="text-lg font-bold text-red-600">
+                <p className={`text-lg font-bold ${
+                  parseFloat(flatBill.balance_due) > 0 ? 'text-red-600' : 'text-green-600'
+                }`}>
                   ₹{parseFloat(flatBill.balance_due).toLocaleString('en-IN')}
                 </p>
               </div>

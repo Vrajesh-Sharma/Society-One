@@ -43,7 +43,7 @@ export default function RecordPaymentForm({ user, society, onPaymentRecorded }) 
         .from('flats')
         .select('flat_id, flat_number')
         .eq('society_id', society.society_id)
-        .order('flat_number', { ascending: true });
+        .order('flat_number', { ascending: true});
       setFlats(data || []);
     } catch (err) {
       console.error('Error fetching flats:', err);
@@ -156,8 +156,12 @@ export default function RecordPaymentForm({ user, society, onPaymentRecorded }) 
           <p className="text-sm font-semibold text-gray-700 mb-2">Bill Details:</p>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <span className="text-gray-600">Bill Amount:</span>
+              <span className="text-gray-600">Original Bill:</span>
               <span className="font-bold ml-2">₹{parseFloat(selectedFlatBill.bill_amount).toLocaleString('en-IN')}</span>
+            </div>
+            <div>
+              <span className="text-gray-600">Adjusted Bill:</span>
+              <span className="font-bold ml-2 text-blue-600">₹{parseFloat(selectedFlatBill.adjusted_amount).toLocaleString('en-IN')}</span>
             </div>
             <div>
               <span className="text-gray-600">Already Paid:</span>
@@ -167,7 +171,7 @@ export default function RecordPaymentForm({ user, society, onPaymentRecorded }) 
               <span className="text-gray-600">Balance Due:</span>
               <span className="font-bold ml-2 text-red-600">₹{parseFloat(selectedFlatBill.balance_due).toLocaleString('en-IN')}</span>
             </div>
-            <div>
+            <div className="col-span-2">
               <span className="text-gray-600">Status:</span>
               <span className={`font-bold ml-2 capitalize ${
                 selectedFlatBill.status === 'paid' ? 'text-green-600' :

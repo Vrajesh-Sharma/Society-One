@@ -70,54 +70,90 @@ export default function DefaultersList({ society, currentBill }) {
         </div>
       ) : (
         <div className="space-y-4">
-          {defaulters.map((defaulter, index) => (
-            <div
-              key={defaulter.flat_bill_id}
-              style={{ animationDelay: `${index * 0.05}s` }}
-              className="bg-red-50 border border-red-200 rounded-xl p-5 animate-slide-up"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h4 className="font-bold text-gray-900 text-lg">
-                    Flat {defaulter.flat_number}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    Status: <span className="font-semibold capitalize text-red-600">{defaulter.status}</span>
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Balance Due</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    ₹{parseFloat(defaulter.balance_due).toLocaleString('en-IN')}
-                  </p>
-                  {parseFloat(defaulter.total_paid) > 0 && (
-                    <p className="text-xs text-green-600 mt-1">
-                      Paid: ₹{parseFloat(defaulter.total_paid).toLocaleString('en-IN')}
-                    </p>
-                  )}
-                </div>
-              </div>
+          {defaulters.map((defaulter, index) => {
+            const originalAmt = parseFloat(defaulter.bill_amount);
+            const adjustedAmt = parseFloat(defaulter.adjusted_amount);
+            const paidAmt = parseFloat(defaulter.total_paid);
+            const balanceDue = parseFloat(defaulter.balance_due);
+            const adjustment = originalAmt - adjustedAmt;
+            const hasDiscount = adjustment > 0;
+            const hasPreviousDue = adjustment < 0;
 
-              {defaulter.flats?.users && defaulter.flats.users.length > 0 && (
-                <div className="space-y-2 mt-4 pt-4 border-t border-red-200">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Contact Details:</p>
-                  {defaulter.flats.users.map((resident, idx) => (
-                    <div key={idx} className="flex items-center gap-4 text-sm">
-                      <span className="font-semibold text-gray-900">{resident.name}</span>
-                      <div className="flex items-center gap-1 text-gray-600">
-                        <Phone className="w-3 h-3" />
-                        <span>{resident.phone}</span>
+            return (
+              <div
+                key={defaulter.flat_bill_id}
+                style={{ animationDelay: `${index * 0.05}s` }}
+                className="bg-red-50 border border-red-200 rounded-xl p-5 animate-slide-up"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h4 className="font-bold text-gray-900 text-lg">
+                      Flat {defaulter.flat_number}
+                    </h4>
+                    {hasDiscount ? (
+                      <div className="text-sm mt-1">
+                        <p className="text-gray-600">
+                          Original: <span className="line-through">₹{originalAmt.toLocaleString('en-IN')}</span>
+                          {' '}<span className="text-green-600 font-semibold">
+                            -₹{Math.abs(adjustment).toLocaleString('en-IN')}
+                          </span>
+                        </p>
+                        <p className="text-gray-900 font-semibold">
+                          Bill: ₹{adjustedAmt.toLocaleString('en-IN')}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-1 text-gray-600">
-                        <Mail className="w-3 h-3" />
-                        <span className="truncate">{resident.email}</span>
+                    ) : hasPreviousDue ? (
+                      <div className="text-sm mt-1">
+                        <p className="text-gray-600">
+                          Current Month: ₹{originalAmt.toLocaleString('en-IN')}
+                          {' '}<span className="text-orange-600 font-semibold">
+                            +₹{Math.abs(adjustment).toLocaleString('en-IN')} (Previous Due)
+                          </span>
+                        </p>
+                        <p className="text-gray-900 font-semibold">
+                          Total Bill: ₹{adjustedAmt.toLocaleString('en-IN')}
+                        </p>
                       </div>
-                    </div>
-                  ))}
+                    ) : (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Bill Amount: ₹{adjustedAmt.toLocaleString('en-IN')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Balance Due</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      ₹{balanceDue.toLocaleString('en-IN')}
+                    </p>
+                    {paidAmt > 0 && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Paid: ₹{paidAmt.toLocaleString('en-IN')}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {defaulter.flats?.users && defaulter.flats.users.length > 0 && (
+                  <div className="space-y-2 mt-4 pt-4 border-t border-red-200">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Contact Details:</p>
+                    {defaulter.flats.users.map((resident, idx) => (
+                      <div key={idx} className="flex items-center gap-4 text-sm flex-wrap">
+                        <span className="font-semibold text-gray-900">{resident.name}</span>
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <Phone className="w-3 h-3" />
+                          <span>{resident.phone}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <Mail className="w-3 h-3" />
+                          <span className="truncate">{resident.email}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
